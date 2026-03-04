@@ -3,31 +3,45 @@ import time
 
 from .layers.elu import MakePyTorchELU
 
-# Map from ONNX node types to their parsing functions
-mapPyTorchNode = {
-    "onnx::Elu": MakePyTorchELU,
-}
-
 def _node_get(node, key):
     """Helper to get node attribute without depending on onnx submodule."""
     sel = node.kindOf(key)
     return getattr(node, sel)(key)
 
+def MakePyTorchGemm(node_data):
+    """Parse Gemm (Linear layer) operator."""
+    from ROOT.TMVA.Experimental import SOFIE
+    attrs   = node_data["nodeAttributes"]
+    inputs  = node_data["nodeInputs"]
+    outputs = node_data["nodeOutputs"]
+    dtype   = node_data["nodeDType"][0]
+
+    nameA = inputs[0]
+    nameB = inputs[1]
+    nameC = inputs[2]
+    nameY = outputs[0]
+
+    alpha  = float(attrs.get("alpha", 1.0))
+    beta   = float(attrs.get("beta", 1.0))
+    transB = int(attrs.get("transB", 0))
+    transA = int(not transB)
+
+    if SOFIE.ConvertStringToType(dtype) == SOFIE.ETensorType.FLOAT:
+        op = SOFIE.ROperator_Gemm["float"](alpha, beta, transA, transB, nameA, nameB, nameC, nameY)
+        return op
+    else:
+        raise RuntimeError("Unsupported type for Gemm: " + dtype)
+
+# Map from ONNX node types to their parsing functions
+mapPyTorchNode = {
+    "onnx::Gemm": MakePyTorchGemm,
+    "onnx::Elu":  MakePyTorchELU,
+}
+
 class PyTorch:
 
     @staticmethod
     def Parse(filename, input_shapes, input_dtypes=None):
-        """
-        Parse a PyTorch .pt model file into a SOFIE RModel.
-
-        Parameters:
-        filename (str): Path to the .pt model file
-        input_shapes (list of list): Shapes of input tensors e.g. [[2, 16]]
-        input_dtypes (list of str, optional): Defaults to all 'float'.
-
-        Returns:
-        RModel: Parsed SOFIE RModel object
-        """
         import torch
         from ROOT.TMVA.Experimental import SOFIE
         from torch.onnx.utils import _model_to_graph
@@ -47,19 +61,17 @@ class PyTorch:
 
         print("PyTorch Python Parser: parsing model", filename)
 
-        # Load and prepare model
         model = torch.jit.load(filename)
         model.cpu()
         model.eval()
 
-        # Build dummy inputs and get ONNX graph
         dummy_inputs = [torch.rand(*shape) for shape in input_shapes]
-        graph, weights = _model_to_graph(model, dummy_inputs)
+        result  = _model_to_graph(model, dummy_inputs)
+        graph   = result[0]
+        weights = result[1]
 
-        # Parse operators
         for node in graph.nodes():
             node_type = node.kind()
-
             attr_names = [x for x in node.attributeNames()]
             node_data = {
                 "nodeType":       node_type,
@@ -77,10 +89,10 @@ class PyTorch:
             try:
                 op = parse_fn(node_data)
                 rmodel.AddOperatorReference(op)
+                if node_type == "onnx::Gemm":
+                    rmodel.AddBlasRoutines({"Gemm", "Gemv"})
             except Exception as e:
-                raise RuntimeError(
-                    f"TMVA::SOFIE - Failed to parse node {node_type}: {e}"
-                )
+                raise RuntimeError(f"TMVA::SOFIE - Failed to parse node {node_type}: {e}")
 
         # Add weights
         for name, tensor in weights.items():
