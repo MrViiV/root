@@ -66,14 +66,28 @@ class SOFIE_PyTorch_Parser(unittest.TestCase):
 
     def test_maxpool2d(self):
     	model = nn.Sequential(
-        nn.MaxPool2d(kernel_size=2, stride=2)
+            nn.MaxPool2d(kernel_size=2, stride=2)
     	)
     	x = torch.randn(1, 1, 8, 8)
     	generate_and_test_pytorch_inference(model, x, "MaxPool2D_model", self.test_dir)
 
+    def test_maxpool2d_padding(self):
+    	model = nn.Sequential(
+            nn.MaxPool2d(kernel_size=2, stride=2, padding=1)
+    	)
+    	x = torch.randn(1, 1, 8, 8)
+    	generate_and_test_pytorch_inference(model, x, "MaxPool2D_pad_model", self.test_dir)
+
+    def test_maxpool2d_rect_kernel(self):
+    	model = nn.Sequential(
+            nn.MaxPool2d(kernel_size=(2, 3), stride=(2, 3))
+    	)
+    	x = torch.randn(1, 1, 8, 9)
+    	generate_and_test_pytorch_inference(model, x, "MaxPool2D_rect_model", self.test_dir)
+
     @classmethod
     def tearDownClass(cls):
-        for test_dir in ["test_elu", "test_maxpool2d"]:
+        for test_dir in ["test_elu", "test_maxpool2d", "test_maxpool2d_padding", "test_maxpool2d_rect_kernel"]:
             if os.path.isdir(test_dir):
                 shutil.rmtree(test_dir)
 
