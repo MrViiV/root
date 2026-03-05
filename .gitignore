@@ -50,3 +50,11 @@ documentation/doxygen/*.dot
 
 # Pycache
 __pycache__
+# SOFIE tutorial outputs
+tutorials/machine_learning/*.root
+tutorials/machine_learning/*.dat
+tutorials/machine_learning/*.hxx
+tutorials/machine_learning/*.keras
+tutorials/machine_learning/*.pt
+tutorials/machine_learning/make_pytorch_model.py
+tutorials/machine_learning/dataset/
