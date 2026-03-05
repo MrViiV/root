@@ -35,9 +35,7 @@ def MakePyTorchMaxPool2D(node):
 
     # Normalize pads - ONNX gives [pH_begin, pW_begin, pH_end, pW_end]
     # SOFIE expects symmetric [pH, pW]
-    fAttrPads = fAttributes.get("pads", [0, 0, 0, 0])
-    if len(fAttrPads) == 4:
-        fAttrPads = [fAttrPads[0], fAttrPads[1]]
+    fAttrPads = list(fAttributes.get("pads", [0, 0, 0, 0]))
 
     fAttrDilations    = list(fAttributes.get("dilations", [1, 1]))
     fAttrCeilMode     = int(fAttributes.get("ceil_mode", 0))
