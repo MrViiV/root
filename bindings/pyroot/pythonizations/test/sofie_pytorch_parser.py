@@ -85,6 +85,14 @@ class SOFIE_PyTorch_Parser(unittest.TestCase):
     	x = torch.randn(1, 1, 8, 9)
     	generate_and_test_pytorch_inference(model, x, "MaxPool2D_rect_model", self.test_dir)
 
+    def test_batchnorm2d(self):
+    	model = nn.Sequential(
+            nn.BatchNorm2d(num_features=4)
+    	)
+    	model.eval()
+    	x = torch.randn(2, 4, 8, 8)
+    	generate_and_test_pytorch_inference(model, x, "BatchNorm2D_model", self.test_dir)
+
     @classmethod
     def tearDownClass(cls):
         for test_dir in ["test_elu", "test_maxpool2d", "test_maxpool2d_padding", "test_maxpool2d_rect_kernel"]:
