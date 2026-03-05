@@ -4,6 +4,7 @@ import time
 from .layers.elu import MakePyTorchELU
 from .layers.maxpool2d import MakePyTorchMaxPool2D
 from .layers.batchnorm2d import MakePyTorchBatchNorm2D
+from .layers.rnn import MakePyTorchRNN
 
 def _node_get(node, key):
     """Helper to get node attribute without depending on onnx submodule."""
@@ -39,7 +40,8 @@ mapPyTorchNode = {
     "onnx::Gemm": MakePyTorchGemm,
     "onnx::Elu":  MakePyTorchELU,
     "onnx::MaxPool": MakePyTorchMaxPool2D,
-    "onnx::BatchNormalization": MakePyTorchBatchNorm2D
+    "onnx::BatchNormalization": MakePyTorchBatchNorm2D,
+    "onnx::RNN": MakePyTorchRNN
 }
 
 class PyTorch:
