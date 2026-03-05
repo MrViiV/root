@@ -50,6 +50,42 @@ def generate_and_test_pytorch_inference(model, input_tensor, model_name, output_
 
     print(f"  {model_name}: PASSED ✓")
 
+def generate_and_test_recurrent_inference(model, input_tensor, model_name, output_dir):
+    """Test helper for RNN/LSTM/GRU models using ONNX fallback parser."""
+    import tempfile
+    model.eval()
+    pt_file  = os.path.join(output_dir, model_name + ".pt")
+    hxx_file = os.path.join(output_dir, model_name + ".hxx")
+    dat_file = hxx_file.replace(".hxx", ".dat")
+
+    # Save as .pt for PyTorch parser entry point
+    scripted = torch.jit.trace(model, input_tensor)
+    torch.jit.save(scripted, pt_file)
+
+    # Parse - will use ONNX fallback internally
+    input_shape = list(input_tensor.shape)
+    rmodel = PyTorch.Parse(pt_file, [input_shape])
+    rmodel.Generate()
+    rmodel.OutputGenerated(hxx_file)
+
+    # Compile
+    compile_status = ROOT.gInterpreter.Declare(f'#include "{hxx_file}"')
+    if not compile_status:
+        raise AssertionError(f"Error compiling {hxx_file}")
+
+    # Run SOFIE inference
+    sofie_ns = getattr(ROOT, "TMVA_SOFIE_" + model_name)
+    session  = sofie_ns.Session(dat_file)
+    sofie_result = np.asarray(session.infer(input_tensor.numpy()))
+
+    # Run PyTorch inference
+    with torch.no_grad():
+        pytorch_result = model(input_tensor).numpy()
+
+    if not is_accurate(sofie_result, pytorch_result):
+        raise AssertionError(f"SOFIE and PyTorch results do not match for {model_name}")
+
+    print(f"  {model_name}: PASSED ✓")
 
 class SOFIE_PyTorch_Parser(unittest.TestCase):
 
@@ -97,6 +133,20 @@ class SOFIE_PyTorch_Parser(unittest.TestCase):
         model.eval()
         x = torch.randn(2, 4, 8, 8)
         generate_and_test_pytorch_inference(model, x, "BatchNorm2D_model", self.test_dir)
+
+    def test_rnn(self):
+        torch.manual_seed(0)
+        class RNNModel(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.rnn = nn.RNN(input_size=8, hidden_size=16, batch_first=True)
+            def forward(self, x):
+                out, _ = self.rnn(x)
+                return out
+        model = RNNModel()
+        model.eval()
+        x = torch.randn(2, 5, 8)
+        generate_and_test_recurrent_inference(model, x, "RNN_model", self.test_dir)
 
     @classmethod
     def tearDownClass(cls):
