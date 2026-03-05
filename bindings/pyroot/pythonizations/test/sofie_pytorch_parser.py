@@ -60,38 +60,43 @@ class SOFIE_PyTorch_Parser(unittest.TestCase):
         os.makedirs(self.test_dir)
 
     def test_elu(self):
+        torch.manual_seed(0)
         model = nn.Sequential(nn.Linear(16, 8), nn.ELU(alpha=1.0))
         x = torch.randn(2, 16)
         generate_and_test_pytorch_inference(model, x, "ELU_model", self.test_dir)
 
     def test_maxpool2d(self):
-    	model = nn.Sequential(
+        torch.manual_seed(0)
+        model = nn.Sequential(
             nn.MaxPool2d(kernel_size=2, stride=2)
     	)
-    	x = torch.randn(1, 1, 8, 8)
-    	generate_and_test_pytorch_inference(model, x, "MaxPool2D_model", self.test_dir)
+        x = torch.randn(1, 1, 8, 8)
+        generate_and_test_pytorch_inference(model, x, "MaxPool2D_model", self.test_dir)
 
     def test_maxpool2d_padding(self):
-    	model = nn.Sequential(
+        torch.manual_seed(0)
+        model = nn.Sequential(
             nn.MaxPool2d(kernel_size=2, stride=2, padding=1)
     	)
-    	x = torch.randn(1, 1, 8, 8)
-    	generate_and_test_pytorch_inference(model, x, "MaxPool2D_pad_model", self.test_dir)
+        x = torch.randn(1, 1, 8, 8)
+        generate_and_test_pytorch_inference(model, x, "MaxPool2D_pad_model", self.test_dir)
 
     def test_maxpool2d_rect_kernel(self):
-    	model = nn.Sequential(
+        torch.manual_seed(0)
+        model = nn.Sequential(
             nn.MaxPool2d(kernel_size=(2, 3), stride=(2, 3))
     	)
-    	x = torch.randn(1, 1, 8, 9)
-    	generate_and_test_pytorch_inference(model, x, "MaxPool2D_rect_model", self.test_dir)
+        x = torch.randn(1, 1, 8, 9)
+        generate_and_test_pytorch_inference(model, x, "MaxPool2D_rect_model", self.test_dir)
 
     def test_batchnorm2d(self):
-    	model = nn.Sequential(
+        torch.manual_seed(0)
+        model = nn.Sequential(
             nn.BatchNorm2d(num_features=4)
     	)
-    	model.eval()
-    	x = torch.randn(2, 4, 8, 8)
-    	generate_and_test_pytorch_inference(model, x, "BatchNorm2D_model", self.test_dir)
+        model.eval()
+        x = torch.randn(2, 4, 8, 8)
+        generate_and_test_pytorch_inference(model, x, "BatchNorm2D_model", self.test_dir)
 
     @classmethod
     def tearDownClass(cls):
