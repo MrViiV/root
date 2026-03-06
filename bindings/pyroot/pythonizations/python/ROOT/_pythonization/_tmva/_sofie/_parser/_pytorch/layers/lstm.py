@@ -3,8 +3,8 @@ def MakePyTorchLSTM(node_data, raw_node, weights, rmodel, input_name="x"):
     Create a PyTorch-compatible LSTM operation using the SOFIE framework.
 
     Directly maps onnx::LSTM node to ROperator_LSTM by extracting
-    weight tensor names from node inputs (deterministic) rather than
-    shape matching. Helper nodes (Constant, Transpose etc.) are skipped
+    weight tensor names deterministically from node inputs.
+    Helper nodes (Constant, Transpose, Expand etc.) are skipped
     in the parser dispatcher.
 
     Parameters:
@@ -12,18 +12,18 @@ def MakePyTorchLSTM(node_data, raw_node, weights, rmodel, input_name="x"):
     raw_node:         raw torch graph node (for input name extraction)
     weights (dict):   model weights from _model_to_graph
     rmodel:           SOFIE RModel to register weight tensors into
+    input_name (str): actual model input tensor name
 
     Returns:
     ROperator_LSTM: A SOFIE operator for LSTM.
     """
     from ROOT.TMVA.Experimental import SOFIE
-    import numpy as np
 
     fNodeDType  = node_data["nodeDType"][0]
     fAttributes = node_data["nodeAttributes"]
     fOutputs    = node_data["nodeOutputs"]
 
-    # Extract attributes
+    # Attributes with ONNX defaults
     fHiddenSize      = int(fAttributes.get("hidden_size", 1))
     fDirection       = str(fAttributes.get("direction", "forward")).lower()
     fActivations     = list(fAttributes.get("activations", ["Sigmoid", "Tanh", "Tanh"]))
@@ -33,7 +33,8 @@ def MakePyTorchLSTM(node_data, raw_node, weights, rmodel, input_name="x"):
     fActivationBeta  = list(fAttributes.get("activation_beta", []))
     fClip            = float(fAttributes.get("clip", 0.0))
     fInputForget     = int(fAttributes.get("input_forget", 0))
-    fLayout          = int(fAttributes.get("layout", 0))
+    # batch_first=True in PyTorch means layout=1 (batch, seq, feature)
+    fLayout          = 1
 
     if fHiddenSize <= 0:
         raise RuntimeError("TMVA::SOFIE LSTM hidden_size must be positive")
@@ -44,10 +45,10 @@ def MakePyTorchLSTM(node_data, raw_node, weights, rmodel, input_name="x"):
     fNameW        = inputs[1].debugName() if len(inputs) > 1 else ""
     fNameR        = inputs[2].debugName() if len(inputs) > 2 else ""
     fNameB        = inputs[3].debugName() if len(inputs) > 3 else ""
-    fNameSeqLens  = inputs[4].debugName() if len(inputs) > 4 else ""
-    fNameInitialH = inputs[5].debugName() if len(inputs) > 5 else ""
-    fNameInitialC = inputs[6].debugName() if len(inputs) > 6 else ""
-    fNameP        = inputs[7].debugName() if len(inputs) > 7 else ""
+    fNameSeqLens  = ""
+    fNameInitialH = ""
+    fNameInitialC = ""
+    fNameP        = ""
 
     # Register weight tensors into rmodel
     for name in [fNameW, fNameR, fNameB]:
@@ -58,7 +59,7 @@ def MakePyTorchLSTM(node_data, raw_node, weights, rmodel, input_name="x"):
             if SOFIE.ConvertStringToType(fNodeDType) == SOFIE.ETensorType.FLOAT:
                 rmodel.AddInitializedTensor["float"](name, shape, value.flatten())
 
-    # Output tensor names
+    # Output tensor names - use direct RNN output, not post-processing helpers
     fNameY   = fOutputs[0] if len(fOutputs) > 0 else ""
     fNameY_h = fOutputs[1] if len(fOutputs) > 1 else ""
     fNameY_c = fOutputs[2] if len(fOutputs) > 2 else ""
