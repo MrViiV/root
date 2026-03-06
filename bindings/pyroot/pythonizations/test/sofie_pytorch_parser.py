@@ -148,9 +148,25 @@ class SOFIE_PyTorch_Parser(unittest.TestCase):
         x = torch.randn(2, 5, 8)
         generate_and_test_recurrent_inference(model, x, "RNN_model", self.test_dir)
 
+    def test_lstm(self):
+        torch.manual_seed(0)
+        class LSTMModel(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.lstm = nn.LSTM(input_size=8, hidden_size=16, batch_first=True)
+            def forward(self, x):
+                out, _ = self.lstm(x)
+                return out
+        model = LSTMModel()
+        model.eval()
+        x = torch.randn(2, 5, 8)
+        generate_and_test_recurrent_inference(model, x, "LSTM_model", self.test_dir)
+
     @classmethod
     def tearDownClass(cls):
-        for test_dir in ["test_elu", "test_maxpool2d", "test_maxpool2d_padding", "test_maxpool2d_rect_kernel"]:
+        for test_dir in ["test_elu", "test_maxpool2d", "test_maxpool2d_padding",
+                         "test_maxpool2d_rect_kernel", "test_batchnorm2d",
+                         "test_rnn", "test_lstm"]:
             if os.path.isdir(test_dir):
                 shutil.rmtree(test_dir)
 
