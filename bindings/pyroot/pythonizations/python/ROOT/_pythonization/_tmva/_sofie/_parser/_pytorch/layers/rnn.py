@@ -1,61 +1,61 @@
-def MakePyTorchRNN(node):
+def MakePyTorchRNN(node_data, raw_node, weights, rmodel, input_name="x"):
     """
     Create a PyTorch-compatible RNN operation using the SOFIE framework.
 
-    Supports forward, reverse and bidirectional RNNs.
+    Directly maps onnx::RNN node to ROperator_RNN by extracting
+    weight tensor names from node inputs (deterministic).
+    Helper nodes (Constant, Transpose etc.) are skipped in dispatcher.
 
     Parameters:
-    node (dict): {
-        'nodeType':       str  - 'onnx::RNN'
-        'nodeAttributes': dict - activations, clip, direction, hidden_size, layout
-        'nodeInputs':     list - [X, W, R, B, sequence_lens, initial_h]
-        'nodeOutputs':    list - [Y, Y_h]
-        'nodeDType':      list - data types
-    }
+    node_data (dict): parsed node info dict
+    raw_node:         raw torch graph node (for input name extraction)
+    weights (dict):   model weights from _model_to_graph
+    rmodel:           SOFIE RModel to register weight tensors into
 
     Returns:
     ROperator_RNN: A SOFIE operator for RNN.
     """
     from ROOT.TMVA.Experimental import SOFIE
 
-    fNodeDType  = node["nodeDType"][0]
-    fInputs     = node["nodeInputs"]
-    fOutputs    = node["nodeOutputs"]
-    fAttributes = node["nodeAttributes"]
-
-    # Validate required inputs
-    if len(fInputs) < 3:
-        raise RuntimeError(
-            "TMVA::SOFIE RNN expects at least 3 inputs (X, W, R)"
-        )
-
-    # Extract input tensor names (some may be optional)
-    fNameX        = fInputs[0] if len(fInputs) > 0 else ""
-    fNameW        = fInputs[1] if len(fInputs) > 1 else ""
-    fNameR        = fInputs[2] if len(fInputs) > 2 else ""
-    fNameB        = fInputs[3] if len(fInputs) > 3 else ""
-    fNameSeqLens  = fInputs[4] if len(fInputs) > 4 else ""
-    fNameInitialH = fInputs[5] if len(fInputs) > 5 else ""
-
-    # Extract output tensor names
-    fNameY   = fOutputs[0] if len(fOutputs) > 0 else ""
-    fNameY_h = fOutputs[1] if len(fOutputs) > 1 else ""
+    fNodeDType  = node_data["nodeDType"][0]
+    fAttributes = node_data["nodeAttributes"]
+    fOutputs    = node_data["nodeOutputs"]
 
     # Attributes with ONNX defaults
-    fActivationAlpha = list(fAttributes.get("activation_alpha", []))
-    fActivationBeta  = list(fAttributes.get("activation_beta", []))
+    fHiddenSize      = int(fAttributes.get("hidden_size", 1))
+    fDirection       = str(fAttributes.get("direction", "forward")).lower()
     fActivations     = list(fAttributes.get("activations", ["Tanh"]))
     if len(fActivations) == 0:
         fActivations = ["Tanh"]
-    fClip        = float(fAttributes.get("clip", 0.0))
-    fDirection   = str(fAttributes.get("direction", "forward")).lower()
-    fHiddenSize  = int(fAttributes.get("hidden_size", 1))
-    fLayout      = int(fAttributes.get("layout", 0))
+    fActivationAlpha = list(fAttributes.get("activation_alpha", []))
+    fActivationBeta  = list(fAttributes.get("activation_beta", []))
+    fClip            = float(fAttributes.get("clip", 0.0))
+    fLayout          = 1
 
     if fHiddenSize <= 0:
-        raise RuntimeError(
-            "TMVA::SOFIE RNN hidden_size must be positive"
-        )
+        raise RuntimeError("TMVA::SOFIE RNN hidden_size must be positive")
+
+    # Extract weight names deterministically from node inputs
+    inputs = list(raw_node.inputs())
+    fNameX        = input_name                         # X is the original model input, not the transposed helper node output
+    fNameW        = inputs[1].debugName() if len(inputs) > 1 else ""
+    fNameR        = inputs[2].debugName() if len(inputs) > 2 else ""
+    fNameB        = inputs[3].debugName() if len(inputs) > 3 else ""
+    fNameSeqLens  = ""
+    fNameInitialH = ""
+
+    # Register weight tensors into rmodel
+    for name in [fNameW, fNameR, fNameB]:
+        if name and name in weights:
+            tensor = weights[name]
+            value  = tensor.detach().numpy()
+            shape  = list(value.shape)
+            if SOFIE.ConvertStringToType(fNodeDType) == SOFIE.ETensorType.FLOAT:
+                rmodel.AddInitializedTensor["float"](name, shape, value.flatten())
+
+    # Output tensor names
+    fNameY   = fOutputs[0] if len(fOutputs) > 0 else ""
+    fNameY_h = fOutputs[1] if len(fOutputs) > 1 else ""
 
     if SOFIE.ConvertStringToType(fNodeDType) == SOFIE.ETensorType.FLOAT:
         op = SOFIE.ROperator_RNN["float"](
@@ -68,5 +68,5 @@ def MakePyTorchRNN(node):
         return op
     else:
         raise RuntimeError(
-            "TMVA::SOFIE - Unsupported - Operator RNN does not yet support input type " + fNodeDType
+            "TMVA::SOFIE - Unsupported - RNN does not yet support input type " + fNodeDType
         )
