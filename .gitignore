@@ -58,3 +58,10 @@ tutorials/machine_learning/*.keras
 tutorials/machine_learning/*.pt
 tutorials/machine_learning/make_pytorch_model.py
 tutorials/machine_learning/dataset/
+# Test output files
+bindings/pyroot/pythonizations/test/test_*/
+bindings/pyroot/pythonizations/test/*.dat
+bindings/pyroot/pythonizations/test/*.hxx
+bindings/pyroot/pythonizations/test/*.onnx
+bindings/pyroot/pythonizations/test/*.pt
+*.save
