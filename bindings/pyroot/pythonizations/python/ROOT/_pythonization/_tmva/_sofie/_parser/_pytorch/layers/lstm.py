@@ -1,4 +1,4 @@
-def MakePyTorchLSTM(node_data, raw_node, weights, rmodel):
+def MakePyTorchLSTM(node_data, raw_node, weights, rmodel, input_name="x"):
     """
     Create a PyTorch-compatible LSTM operation using the SOFIE framework.
 
@@ -40,7 +40,7 @@ def MakePyTorchLSTM(node_data, raw_node, weights, rmodel):
 
     # Extract weight names deterministically from node inputs
     inputs = list(raw_node.inputs())
-    fNameX        = inputs[0].debugName() if len(inputs) > 0 else ""
+    fNameX        = input_name
     fNameW        = inputs[1].debugName() if len(inputs) > 1 else ""
     fNameR        = inputs[2].debugName() if len(inputs) > 2 else ""
     fNameB        = inputs[3].debugName() if len(inputs) > 3 else ""
