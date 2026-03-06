@@ -24,10 +24,11 @@ def MakePyTorchBatchNorm2D(node):
     fOutputs    = node["nodeOutputs"]
     fAttributes = node["nodeAttributes"]
 
-    if len(fInputs) !=5:
-	raise RuntimeError(
-	    "TMVA::SOFIE BatchNorm2D expects 5 inputs but got {}".format(len(fInputs))
-	)
+    # Validate input count
+    if len(fInputs) != 5:
+        raise RuntimeError(
+            "TMVA::SOFIE BatchNorm2D expects 5 inputs but got {}".format(len(fInputs))
+        )
 
     # Input tensors: X, scale, bias, mean, var
     fNameX     = fInputs[0]
