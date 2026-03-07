@@ -162,11 +162,25 @@ class SOFIE_PyTorch_Parser(unittest.TestCase):
         x = torch.randn(2, 5, 8)
         generate_and_test_recurrent_inference(model, x, "LSTM_model", self.test_dir)
 
+    def test_gru(self):
+        torch.manual_seed(0)
+        class GRUModel(nn.Module):
+            def __init__(self):
+               super().__init__()
+               self.gru = nn.GRU(input_size=8, hidden_size=16, batch_first=True)
+            def forward(self, x):
+                out, _ = self.gru(x)
+                return out
+        model = GRUModel()
+        model.eval()
+        x = torch.randn(2, 5, 8)
+        generate_and_test_recurrent_inference(model, x, "GRU_model", self.test_dir)
+
     @classmethod
     def tearDownClass(cls):
         for test_dir in ["test_elu", "test_maxpool2d", "test_maxpool2d_padding",
                          "test_maxpool2d_rect_kernel", "test_batchnorm2d",
-                         "test_rnn", "test_lstm"]:
+                         "test_rnn", "test_lstm", "test_gru"]:
             if os.path.isdir(test_dir):
                 shutil.rmtree(test_dir)
 
