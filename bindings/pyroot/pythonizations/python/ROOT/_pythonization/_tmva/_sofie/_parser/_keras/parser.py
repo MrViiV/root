@@ -20,6 +20,7 @@ from .layers.sigmoid import MakeKerasSigmoid
 from .layers.softmax import MakeKerasSoftmax
 from .layers.swish import MakeKerasSwish
 from .layers.tanh import MakeKerasTanh
+from .layers.rnn import MakeKerasRNN
 
 
 def MakeKerasActivation(layer):
@@ -63,9 +64,9 @@ mapKerasLayer = {
     "MaxPooling2D": MakeKerasPooling,
     "AveragePooling2D": MakeKerasPooling,
     "GlobalAveragePooling2D": MakeKerasPooling,
-    #  "SimpleRNN": MakeKerasRNN,
-    #  "GRU": MakeKerasRNN,
-    #  "LSTM": MakeKerasRNN,
+        "SimpleRNN": MakeKerasRNN,
+        "GRU": MakeKerasRNN,
+        "LSTM": MakeKerasRNN,
 }
 
 mapKerasLayerWithActivation = {"Dense": MakeKerasDense, "Conv2D": MakeKerasConv}
