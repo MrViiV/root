@@ -211,3 +211,44 @@ def generate_keras_sequential(dst_dir):
         layers.Dense(3, activation='softmax'),
     ])
     train_and_save(modelC, "Layer_Combination_3")
+    # GRU
+    model = models.Sequential([
+        layers.Input(shape=(5, 4)),
+        layers.GRU(8, return_sequences=True)
+    ])
+    train_and_save(model, "GRU")
+
+    # LSTM
+    model = models.Sequential([
+        layers.Input(shape=(5, 4)),
+        layers.LSTM(8, return_sequences=True)
+    ])
+    train_and_save(model, "LSTM")
+
+    # Conv2DTranspose
+    model = models.Sequential([
+        layers.Input(shape=(8, 8, 2)),
+        layers.Conv2DTranspose(4, (3, 3), padding='same')
+    ])
+    train_and_save(model, "Conv2DTranspose")
+
+    # GRU
+    model = models.Sequential([
+        layers.Input(shape=(5, 4)),
+        layers.GRU(8, return_sequences=True)
+    ])
+    train_and_save(model, "GRU")
+
+    # LSTM
+    model = models.Sequential([
+        layers.Input(shape=(5, 4)),
+        layers.LSTM(8, return_sequences=True)
+    ])
+    train_and_save(model, "LSTM")
+
+    # Conv2DTranspose
+    model = models.Sequential([
+        layers.Input(shape=(8, 8, 2)),
+        layers.Conv2DTranspose(4, (3, 3), padding='same')
+    ])
+    train_and_save(model, "Conv2DTranspose")

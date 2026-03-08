@@ -1,53 +1,43 @@
-import math
 from .. import get_keras_version
 
 def MakeKerasConv2DTranspose(layer):
     """
     Create a Keras-compatible Conv2DTranspose layer operation using SOFIE framework.
-
-    Conv2DTranspose (transposed convolution) is the transpose of a regular convolution,
-    used to upsample feature maps. It is commonly used in decoder networks and generative
-    models such as autoencoders and GANs.
-
-    Parameters:
-    layer (dict): A dictionary containing layer information including input, output,
-                  data type (must be float), weight and bias name, kernel size,
-                  dilations, padding, strides and output_padding.
-
-    Returns:
-    ROperator_ConvTranspose: A SOFIE framework operator representing the Conv2DTranspose operation.
     """
     from ROOT.TMVA.Experimental import SOFIE
 
-    keras_version = get_keras_version()
-    finput          = layer["layerInput"]
-    foutput         = layer["layerOutput"]
-    fLayerDType     = layer["layerDType"]
+    finput           = layer["layerInput"]
+    foutput          = layer["layerOutput"]
+    fLayerDType      = layer["layerDType"]
     fLayerInputName  = finput[0]
     fLayerOutputName = foutput[0]
-    attributes      = layer["layerAttributes"]
-    fWeightNames    = layer["layerWeight"]
-    fKernelName     = fWeightNames[0]
-    fBiasName       = fWeightNames[1] if len(fWeightNames) > 1 else ""
+    attributes       = layer["layerAttributes"]
+    fWeightNames     = layer["layerWeight"]
+    fKernelName      = fWeightNames[0]
+    fBiasName        = fWeightNames[1] if len(fWeightNames) > 1 else ""
 
     fAttrDilations   = list(attributes["dilation_rate"])
     fAttrKernelShape = list(attributes["kernel_size"])
     fAttrStrides     = list(attributes["strides"])
     fAttrGroup       = 1
-    fAttrPads        = []
     fAttrOutputPads  = []
     fAttrOutputShape = []
 
-    # Handle output_padding
-    fOutputPadding = attributes.get("output_padding", None)
-    if fOutputPadding is not None:
-        fAttrOutputPads = list(fOutputPadding) if hasattr(fOutputPadding, '__iter__') else [fOutputPadding, fOutputPadding]
+    fKerasPadding = str(attributes["padding"]).lower()
 
-    fKerasPadding = str(attributes["padding"])
     if fKerasPadding == "valid":
         fAttrAutopad = "VALID"
+        fAttrPads    = []
     elif fKerasPadding == "same":
-        fAttrAutopad = "SAME_UPPER"
+        # Compute explicit pads for NOTSET mode
+        # For ConvTranspose same padding: pad_total = kernel - stride (per dim)
+        fAttrAutopad = "NOTSET"
+        fAttrPads = []
+        for k, s in zip(fAttrKernelShape, fAttrStrides):
+            pad_total = max(k - s, 0)
+            pad_begin = pad_total // 2
+            pad_end   = pad_total - pad_begin
+            fAttrPads.extend([pad_begin, pad_end])
     else:
         raise RuntimeError(
             "TMVA::SOFIE - Conv2DTranspose does not yet support padding: " + fKerasPadding
@@ -71,5 +61,5 @@ def MakeKerasConv2DTranspose(layer):
         return op
     else:
         raise RuntimeError(
-            "TMVA::SOFIE - Unsupported - Conv2DTranspose does not yet support input type " + fLayerDType
+            "TMVA::SOFIE - Unsupported - Conv2DTranspose does not support type " + fLayerDType
         )

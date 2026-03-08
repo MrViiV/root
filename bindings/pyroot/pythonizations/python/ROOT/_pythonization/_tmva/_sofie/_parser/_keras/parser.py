@@ -21,6 +21,7 @@ from .layers.softmax import MakeKerasSoftmax
 from .layers.swish import MakeKerasSwish
 from .layers.tanh import MakeKerasTanh
 from .layers.rnn import MakeKerasRNN
+from .layers.conv2dtranspose import MakeKerasConv2DTranspose
 
 
 def MakeKerasActivation(layer):
@@ -69,7 +70,7 @@ mapKerasLayer = {
         "LSTM": MakeKerasRNN,
 }
 
-mapKerasLayerWithActivation = {"Dense": MakeKerasDense, "Conv2D": MakeKerasConv}
+mapKerasLayerWithActivation = {"Dense": MakeKerasDense, "Conv2D": MakeKerasConv, "Conv2DTranspose": MakeKerasConv2DTranspose}
 
 
 def add_layer_into_RModel(rmodel, layer_data):
@@ -197,6 +198,11 @@ def add_layer_into_RModel(rmodel, layer_data):
                 op = SOFIE.ROperator_Transpose("float")([0, 2, 3, 1], LayerName + "PostTrans", fLayerOutput)
                 rmodel.AddOperatorReference(op)
 
+        elif fLayerType in ["SimpleRNN", "GRU", "LSTM"]:
+            outputs[0] = LayerName + "PreSqueeze"
+            rmodel.AddOperatorReference(mapKerasLayer[fLayerType](layer_data))
+            op = SOFIE.ROperator_Reshape(SOFIE.ReshapeOpMode.Squeeze, [2], LayerName + "PreSqueeze", fLayerOutput)
+            rmodel.AddOperatorReference(op)
         else:
             rmodel.AddOperatorReference(mapKerasLayer[fLayerType](layer_data))
 
@@ -227,7 +233,7 @@ def add_layer_into_RModel(rmodel, layer_data):
             # like pooling, convolutional layer from keras requires transpose before and after to match
             # the onnx format
             # if the data format is channels last (can be set to channels first by the user).
-            if fLayerType == "Conv2D":
+            if fLayerType in ["Conv2D", "Conv2DTranspose"]:
                 if layer_data["channels_last"]:
                     op = SOFIE.ROperator_Transpose("float")([0, 3, 1, 2], inputs[0], LayerName + "PreTrans")
                     rmodel.AddOperatorReference(op)
@@ -238,7 +244,7 @@ def add_layer_into_RModel(rmodel, layer_data):
             op = mapKerasLayerWithActivation[fLayerType](layer_data)
             rmodel.AddOperatorReference(op)
             Activation_layer_input = LayerName + fLayerType
-            if fLayerType == "Conv2D":
+            if fLayerType in ["Conv2D", "Conv2DTranspose"]:
                 if layer_data["channels_last"]:
                     op = SOFIE.ROperator_Transpose("float")(
                         [0, 2, 3, 1], LayerName + fLayerType, LayerName + "PostTrans"
@@ -255,7 +261,7 @@ def add_layer_into_RModel(rmodel, layer_data):
             rmodel.AddOperatorReference(mapKerasLayer[LayerActivation](layer_data))
 
         else:  # if layer is conv and the activation is linear, we need to add transpose before and after
-            if fLayerType == "Conv2D":
+            if fLayerType in ["Conv2D", "Conv2DTranspose"]:
                 inputs = layer_data["layerInput"]
                 outputs = layer_data["layerOutput"]
                 fLayerOutput = outputs[0]
@@ -266,7 +272,7 @@ def add_layer_into_RModel(rmodel, layer_data):
                     layer_data["layerInput"] = inputs
                     outputs[0] = LayerName + "PostTrans"
             rmodel.AddOperatorReference(mapKerasLayerWithActivation[fLayerType](layer_data))
-            if fLayerType == "Conv2D":
+            if fLayerType in ["Conv2D", "Conv2DTranspose"]:
                 if layer_data["channels_last"]:
                     op = SOFIE.ROperator_Transpose("float")([0, 2, 3, 1], LayerName + "PostTrans", fLayerOutput)
                     rmodel.AddOperatorReference(op)
@@ -387,7 +393,7 @@ class PyKeras:
                 layer_data["layerWeight"] = []
 
             # for convolutional and pooling layers we need to know the format of the data
-            if layer_data["layerType"] in ["Conv2D", "MaxPooling2D", "AveragePooling2D", "GlobalAveragePooling2D"]:
+            if layer_data["layerType"] in ["Conv2D", "Conv2DTranspose", "MaxPooling2D", "AveragePooling2D", "GlobalAveragePooling2D"]:
                 layer_data["channels_last"] = True if layer.data_format == "channels_last" else False
 
             # for recurrent type layers we need to extract additional unique information

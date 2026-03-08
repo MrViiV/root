@@ -215,3 +215,21 @@ def generate_keras_functional(dst_dir):
     out = layers.Dense(4, activation="softmax")(merged)
     model = models.Model([inp1, inp2], out)
     train_and_save(model, "Layer_Combination_3")
+
+    # GRU
+    inp = layers.Input(shape=(5, 4))
+    out = layers.GRU(8, return_sequences=True)(inp)
+    model = models.Model(inp, out)
+    train_and_save(model, "GRU")
+
+    # LSTM
+    inp = layers.Input(shape=(5, 4))
+    out = layers.LSTM(8, return_sequences=True)(inp)
+    model = models.Model(inp, out)
+    train_and_save(model, "LSTM")
+
+    # Conv2DTranspose
+    inp = layers.Input(shape=(8, 8, 2))
+    out = layers.Conv2DTranspose(4, (3, 3), padding='same')(inp)
+    model = models.Model(inp, out)
+    train_and_save(model, "Conv2DTranspose")

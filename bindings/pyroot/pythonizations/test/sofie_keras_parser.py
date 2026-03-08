@@ -28,17 +28,18 @@ models = [
     "Flatten",
     "GlobalAveragePooling2D_channels_first",   #failing
     "GlobalAveragePooling2D_channels_last",
-    #"GRU",
+    "GRU",
     "LayerNorm",
     "LeakyReLU",
-    #"LSTM",
+    "LSTM",
     "MaxPool2D_channels_first",
     "MaxPool2D_channels_last",
     "Permute",
     "ReLU",
     "Reshape",
-    #"SimpleRNN",
+    "SimpleRNN",
     "Softmax",
+    "Conv2DTranspose",
 ] + ([f"Activation_layer_{activation_function.capitalize()}" for activation_function in
       ['relu', 'elu', 'leaky_relu', 'selu', 'sigmoid', 'softmax', 'swish', 'tanh']] +
 
