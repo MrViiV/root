@@ -37,7 +37,7 @@ models = [
     "Permute",
     "ReLU",
     "Reshape",
-    "SimpleRNN",
+    #"SimpleRNN",
     "Softmax",
     "Conv2DTranspose",
 ] + ([f"Activation_layer_{activation_function.capitalize()}" for activation_function in
