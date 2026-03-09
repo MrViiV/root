@@ -32,12 +32,15 @@ def MakeKerasConv2DTranspose(layer):
         # Compute explicit pads for NOTSET mode
         # For ConvTranspose same padding: pad_total = kernel - stride (per dim)
         fAttrAutopad = "NOTSET"
-        fAttrPads = []
+        pads_begin = []
+        pads_end   = []
         for k, s in zip(fAttrKernelShape, fAttrStrides):
             pad_total = max(k - s, 0)
             pad_begin = pad_total // 2
             pad_end   = pad_total - pad_begin
-            fAttrPads.extend([pad_begin, pad_end])
+            pads_begin.append(pad_begin)
+            pads_end.append(pad_end)
+        fAttrPads = pads_begin + pads_end
     else:
         raise RuntimeError(
             "TMVA::SOFIE - Conv2DTranspose does not yet support padding: " + fKerasPadding
